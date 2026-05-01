@@ -404,7 +404,6 @@ function renderTasks() {
       </div>
       <div class="panel">
         <div class="section-head">
-          <h3>Tasks</h3>
           <select id="taskProjectFilter">
             <option value="">All projects</option>
             ${state.projects.map((project) => `<option value="${project.id}">${project.name}</option>`).join("")}
