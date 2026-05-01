@@ -100,8 +100,8 @@ function renderAuth() {
           <h2>${state.authMode === "login" ? "Log in" : "Create account"}</h2>
           <p>The first account becomes an Admin. New accounts start as Members.</p>
           <div class="tabs">
-            <button class="tab ${state.authMode === "login" ? "active" : ""}" data-auth-mode="login">Login</button>
-            <button class="tab ${state.authMode === "signup" ? "active" : ""}" data-auth-mode="signup">Signup</button>
+            <button class="tab ${state.authMode === "login" ? "active" : ""}" type="button" data-auth-mode="login">Login</button>
+            <button class="tab ${state.authMode === "signup" ? "active" : ""}" type="button" data-auth-mode="signup">Signup</button>
           </div>
           <form id="authForm">
             <label class="${state.authMode === "login" ? "hidden" : ""}">Name<input name="name" autocomplete="name" /></label>
@@ -173,9 +173,9 @@ function renderShell(content) {
           <span class="role-pill">${state.user.role}</span>
         </div>
         <nav class="nav">
-          ${nav.map(([id, label]) => `<button class="${state.view === id ? "active" : ""}" data-view="${id}">${icon(icons[id])}<span>${label}</span></button>`).join("")}
+          ${nav.map(([id, label]) => `<button class="${state.view === id ? "active" : ""}" type="button" data-view="${id}">${icon(icons[id])}<span>${label}</span></button>`).join("")}
         </nav>
-        <button class="danger-btn" id="logoutBtn">${icon(icons.logout)} Logout</button>
+        <button class="danger-btn" id="logoutBtn" type="button">${icon(icons.logout)} Logout</button>
       </aside>
       <section class="main">
         <header class="topbar">
@@ -183,7 +183,7 @@ function renderShell(content) {
             <h2>${nav.find(([id]) => id === state.view)?.[1] || "Dashboard"}</h2>
             <p>${state.user.role === "admin" ? "Admin access can manage projects, teams, roles, and all tasks." : "Member access can work inside assigned projects."}</p>
           </div>
-          <button class="ghost" id="refreshBtn">${icon(icons.refresh)} Refresh</button>
+          <button class="ghost" id="refreshBtn" type="button">${icon(icons.refresh)} Refresh</button>
         </header>
         ${content}
       </section>
@@ -271,7 +271,7 @@ function projectItem(project) {
     <article class="item">
       <div class="item-title">
         <h4>${project.name}</h4>
-        <button class="icon-btn" title="Select project" data-select-project="${project.id}">${icon("arrow-right")}</button>
+        <button class="icon-btn" title="Select project" type="button" data-select-project="${project.id}">${icon("arrow-right")}</button>
       </div>
       <p>${project.description || "No description"}</p>
       <div class="meta">
@@ -401,8 +401,8 @@ function renderTeam() {
             <div class="meta"><span>${user.email}</span></div>
             ${state.user.role === "admin" && user.id !== state.user.id ? `
               <div class="actions">
-                <button class="ghost" data-role="${user.id}:member">Member</button>
-                <button class="ghost" data-role="${user.id}:admin">Admin</button>
+                <button class="ghost" type="button" data-role="${user.id}:member">Member</button>
+                <button class="ghost" type="button" data-role="${user.id}:admin">Admin</button>
               </div>
             ` : ""}
           </article>
