@@ -35,9 +35,29 @@ npm install
 cp .env.example .env
 ```
 
-3. Set `DATABASE_URL` to a PostgreSQL database.
+On Windows PowerShell, use:
 
-4. Start the app:
+```powershell
+Copy-Item .env.example .env
+```
+
+3. Create a local PostgreSQL database named `team_task_manager`.
+
+You can do this from pgAdmin by right-clicking **Databases**, choosing **Create > Database**, and entering:
+
+```text
+team_task_manager
+```
+
+4. Set `DATABASE_URL` in `.env` to your local PostgreSQL details:
+
+```text
+DATABASE_URL=postgresql://postgres:<your_postgres_password>@localhost:5432/team_task_manager
+```
+
+Replace `<your_postgres_password>` with the password you chose when installing PostgreSQL. The pgJDBC driver from Stack Builder is only for Java apps; this Node.js app uses the `pg` npm package that is already listed in `package.json`.
+
+5. Start the app:
 
 ```bash
 npm start
