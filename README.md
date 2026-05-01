@@ -82,6 +82,18 @@ DB_SSL=false
 
 The server creates the required tables automatically during startup.
 
+## Render Deployment
+
+This repository includes `render.yaml` for Render Blueprint deployment.
+
+1. Push this repository to GitHub.
+2. In Render, click **New > Blueprint**.
+3. Connect the GitHub repository and select the `main` branch.
+4. Review the web service and PostgreSQL database that Render will create.
+5. Deploy the Blueprint.
+
+Render will generate `DATABASE_URL` from the PostgreSQL service and generate `JWT_SECRET` automatically. The server creates the required tables automatically during startup.
+
 ## API Overview
 
 - `POST /api/auth/signup` - create account
