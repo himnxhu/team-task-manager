@@ -360,12 +360,27 @@ function taskItem(task, editable) {
       ${task.description ? `<p>${task.description}</p>` : ""}
       ${editable ? `
         <div class="actions">
-          <button class="ghost" data-status="${task.id}:todo">To do</button>
-          <button class="ghost" data-status="${task.id}:in_progress">In progress</button>
-          <button class="ghost" data-status="${task.id}:done">Done</button>
+          ${statusButton(task, "todo", "To do")}
+          ${statusButton(task, "in_progress", "In progress")}
+          ${statusButton(task, "done", "Done")}
         </div>
       ` : ""}
     </article>
+  `;
+}
+
+function statusButton(task, status, label) {
+  const active = task.status === status;
+  return `
+    <button
+      class="ghost status-action ${active ? "active" : ""}"
+      type="button"
+      data-status="${task.id}:${status}"
+      aria-pressed="${active}"
+      ${active ? "disabled" : ""}
+    >
+      ${label}
+    </button>
   `;
 }
 
@@ -496,10 +511,12 @@ function bindStatusButtons() {
     button.addEventListener("click", async () => {
       const [id, status] = button.dataset.status.split(":");
       try {
+        button.disabled = true;
         await api(`/api/tasks/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
         await loadData();
         renderApp();
       } catch (error) {
+        button.disabled = false;
         toast(error.message);
       }
     });

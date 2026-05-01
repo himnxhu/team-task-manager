@@ -148,6 +148,15 @@ button {
   border: 1px solid var(--line);
 }
 
+.ghost.status-action.active,
+.ghost.status-action:disabled {
+  background: #dff7ec;
+  border-color: rgba(17, 154, 100, 0.45);
+  color: #0b5f42;
+  opacity: 1;
+  cursor: default;
+}
+
 .danger-btn {
   background: #fff1f0;
   color: var(--danger);
