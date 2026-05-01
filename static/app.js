@@ -212,6 +212,9 @@ function renderShell(content) {
       if (state.view === "projects" && state.user.role === "admin" && state.selectedProjectId && !state.projectMembers[state.selectedProjectId]) {
         await loadProjectMembers(state.selectedProjectId);
       }
+      if (state.view === "team" && state.user.role !== "admin") {
+        await loadVisibleProjectMembers();
+      }
       renderApp();
     });
   });
@@ -521,6 +524,7 @@ function renderMemberTeams() {
       <div class="item-list">
         ${state.projects.map((project) => {
           const tasks = state.tasks.filter((task) => task.project_id === project.id);
+          const members = state.projectMembers[project.id] || [];
           return `
             <article class="item">
               <div class="item-title">
@@ -528,6 +532,12 @@ function renderMemberTeams() {
                 <span class="chip">${tasks.length} tasks</span>
               </div>
               <p>${project.description || "No description"}</p>
+              <div class="assigned-members">
+                <strong>Members</strong>
+                <div class="mini-list">
+                  ${members.length ? members.map((member) => `<span>${member.name} <small>${member.role}</small></span>`).join("") : `<span>No members assigned.</span>`}
+                </div>
+              </div>
               <div class="item-list nested-list">
                 ${tasks.length ? tasks.map((task) => taskItem(task, true)).join("") : `<div class="empty">No tasks assigned in this project.</div>`}
               </div>
@@ -763,6 +773,14 @@ async function loadProjectMembers(projectId) {
   state.projectMembers[projectId] = data.members;
 }
 
+async function loadVisibleProjectMembers() {
+  await Promise.all(
+    state.projects
+      .filter((project) => !state.projectMembers[project.id])
+      .map((project) => loadProjectMembers(project.id))
+  );
+}
+
 async function renderApp() {
   if (!state.token) {
     renderAuth();
@@ -789,6 +807,7 @@ async function renderApp() {
     state.user = me.user;
     await loadData();
     if (state.selectedProjectId) await loadProjectMembers(state.selectedProjectId);
+    if (state.view === "team" && state.user.role !== "admin") await loadVisibleProjectMembers();
     renderApp();
   } catch (error) {
     clearSession();

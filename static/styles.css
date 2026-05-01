@@ -486,6 +486,16 @@ textarea:focus {
   font-weight: 700;
 }
 
+.assigned-members {
+  display: grid;
+  gap: 8px;
+}
+
+.assigned-members strong {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .edit-form {
   margin-top: 14px;
   padding: 14px;
