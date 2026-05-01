@@ -8,6 +8,8 @@ const state = {
   tasks: [],
   dashboard: null,
   selectedProjectId: null,
+  editingProjectId: null,
+  editingTaskId: null,
   projectMembers: {}
 };
 
@@ -21,7 +23,12 @@ const icons = {
   logout: "log-out",
   plus: "plus",
   save: "save",
-  refresh: "refresh-cw"
+  refresh: "refresh-cw",
+  edit: "pencil",
+  trash: "trash-2",
+  close: "x",
+  users: "users",
+  calendar: "calendar-days"
 };
 
 function icon(name, size = 18) {
@@ -71,6 +78,15 @@ function toast(message) {
 function fmtDate(value) {
   if (!value) return "No due date";
   return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function inputDate(value) {
+  if (!value) return "";
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function projectById(id) {
+  return state.projects.find((project) => project.id === Number(id));
 }
 
 function statusLabel(status) {
@@ -212,6 +228,8 @@ function renderShell(content) {
 
 function renderDashboard() {
   const stats = state.dashboard?.stats || {};
+  const recentTasks = state.tasks.slice(0, 8);
+  const completedTasks = state.tasks.filter((task) => task.status === "done").slice(0, 8);
   const statCards = [
     ["Total", stats.total || 0],
     ["To do", stats.todo || 0],
@@ -223,7 +241,7 @@ function renderDashboard() {
     <div class="stats-grid">
       ${statCards.map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value}</strong></div>`).join("")}
     </div>
-    <div class="two-col">
+    <div class="dashboard-sections">
       <div class="panel">
         <h3>Overdue Tasks</h3>
         <div class="item-list">
@@ -233,7 +251,13 @@ function renderDashboard() {
       <div class="panel">
         <h3>Recent Work</h3>
         <div class="item-list">
-          ${state.tasks.slice(0, 8).map((task) => taskItem(task, true)).join("") || `<div class="empty">Create a project and add tasks to begin.</div>`}
+          ${recentTasks.map((task) => taskItem(task, state.user.role === "admin")).join("") || `<div class="empty">Create a project and add tasks to begin.</div>`}
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Completed</h3>
+        <div class="item-list">
+          ${completedTasks.map((task) => taskItem(task, state.user.role === "admin")).join("") || `<div class="empty">No completed tasks yet.</div>`}
         </div>
       </div>
     </div>
@@ -241,6 +265,7 @@ function renderDashboard() {
 }
 
 function renderProjects() {
+  const selected = state.user.role === "admin" ? projectById(state.selectedProjectId) : null;
   return `
     <div class="two-col">
       <div class="panel ${state.user.role !== "admin" ? "hidden" : ""}">
@@ -261,17 +286,19 @@ function renderProjects() {
         </div>
       </div>
     </div>
+    ${selected ? renderProjectDetail(selected) : ""}
     ${state.user.role === "admin" ? renderMembershipEditor() : ""}
   `;
 }
 
 function projectItem(project) {
   const progress = project.task_count ? Math.round((project.done_count / project.task_count) * 100) : 0;
+  const selected = project.id === Number(state.selectedProjectId);
   return `
-    <article class="item">
+    <article class="item ${selected ? "selected-item" : ""}">
       <div class="item-title">
         <h4>${project.name}</h4>
-        <button class="icon-btn" title="Select project" type="button" data-select-project="${project.id}">${icon("arrow-right")}</button>
+        <button class="icon-btn" title="Open project" type="button" data-select-project="${project.id}">${icon("arrow-right")}</button>
       </div>
       <p>${project.description || "No description"}</p>
       <div class="meta">
@@ -284,10 +311,53 @@ function projectItem(project) {
   `;
 }
 
+function renderProjectDetail(project) {
+  const members = state.projectMembers[project.id] || [];
+  const projectTasks = state.tasks.filter((task) => task.project_id === project.id);
+  return `
+    <div class="panel project-detail">
+      <div class="section-head">
+        <div>
+          <h3>${project.name}</h3>
+          <p>${project.description || "No description"}</p>
+        </div>
+        <div class="actions">
+          <button class="ghost" type="button" data-edit-project="${project.id}">${icon(icons.edit)} Edit</button>
+          <button class="danger-btn" type="button" data-delete-project="${project.id}">${icon(icons.trash)} Delete</button>
+        </div>
+      </div>
+      ${state.editingProjectId === project.id ? `
+        <form id="projectEditForm" class="edit-form">
+          <label>Project name<input name="name" required minlength="2" value="${project.name}" /></label>
+          <label>Description<textarea name="description">${project.description || ""}</textarea></label>
+          <div class="actions">
+            <button class="primary" type="submit">${icon(icons.save)} Save</button>
+            <button class="ghost" type="button" data-cancel-project-edit>${icon(icons.close)} Cancel</button>
+          </div>
+        </form>
+      ` : ""}
+      <div class="detail-grid">
+        <div>
+          <h4>Members Assigned</h4>
+          <div class="mini-list">
+            ${members.length ? members.map((member) => `<span>${member.name} <small>${member.role}</small></span>`).join("") : `<span>No members assigned.</span>`}
+          </div>
+        </div>
+        <div>
+          <h4>Project Tasks</h4>
+          <div class="item-list">
+            ${projectTasks.length ? projectTasks.map((task) => taskItem(task, true)).join("") : `<div class="empty">No tasks in this project.</div>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderMembershipEditor() {
-  const selected = state.projects.find((project) => project.id === Number(state.selectedProjectId));
+  const selected = projectById(state.selectedProjectId);
   if (!selected) return "";
-  const selectedMemberIds = new Set(state.projectMembers[selected.id] || []);
+  const selectedMemberIds = new Set((state.projectMembers[selected.id] || []).map((member) => member.id));
   return `
     <div class="panel" style="margin-top:16px">
       <div class="section-head">
@@ -312,9 +382,10 @@ function renderMembershipEditor() {
 }
 
 function renderTasks() {
+  const canCreateTasks = state.user.role === "admin";
   return `
     <div class="two-col">
-      <div class="panel">
+      <div class="panel ${canCreateTasks ? "" : "hidden"}">
         <h3>New Task</h3>
         <form id="taskForm">
           <label>Title<input name="title" required minlength="2" /></label>
@@ -345,11 +416,18 @@ function renderTasks() {
 }
 
 function taskItem(task, editable) {
+  const canManage = state.user.role === "admin";
   return `
     <article class="item">
       <div class="item-title">
         <h4>${task.title}</h4>
-        <span class="chip ${task.status}">${statusLabel(task.status)}</span>
+        <div class="actions tight-actions">
+          <span class="chip ${task.status}">${statusLabel(task.status)}</span>
+          ${canManage ? `
+            <button class="icon-btn" title="Edit task" type="button" data-edit-task="${task.id}">${icon(icons.edit, 16)}</button>
+            <button class="icon-btn danger-icon" title="Delete task" type="button" data-delete-task="${task.id}">${icon(icons.trash, 16)}</button>
+          ` : ""}
+        </div>
       </div>
       <div class="meta">
         <span>${task.project_name || "Project"}</span>
@@ -358,6 +436,7 @@ function taskItem(task, editable) {
         <span class="chip ${task.priority}">${task.priority}</span>
       </div>
       ${task.description ? `<p>${task.description}</p>` : ""}
+      ${canManage && state.editingTaskId === task.id ? renderTaskEditForm(task) : ""}
       ${editable ? `
         <div class="actions">
           ${statusButton(task, "todo", "To do")}
@@ -366,6 +445,25 @@ function taskItem(task, editable) {
         </div>
       ` : ""}
     </article>
+  `;
+}
+
+function renderTaskEditForm(task) {
+  return `
+    <form class="edit-form task-edit-form" data-task-edit-form="${task.id}">
+      <label>Title<input name="title" required minlength="2" value="${task.title}" /></label>
+      <label>Description<textarea name="description">${task.description || ""}</textarea></label>
+      <label>Project<select name="projectId" required>${state.projects.map((project) => `<option value="${project.id}" ${project.id === task.project_id ? "selected" : ""}>${project.name}</option>`).join("")}</select></label>
+      <div class="form-row">
+        <label>Assignee<select name="assigneeId"><option value="">Unassigned</option>${state.users.map((user) => `<option value="${user.id}" ${user.id === task.assignee_id ? "selected" : ""}>${user.name}</option>`).join("")}</select></label>
+        <label>Priority<select name="priority"><option value="medium" ${task.priority === "medium" ? "selected" : ""}>Medium</option><option value="high" ${task.priority === "high" ? "selected" : ""}>High</option><option value="low" ${task.priority === "low" ? "selected" : ""}>Low</option></select></label>
+      </div>
+      <label>Due date<input type="date" name="dueDate" value="${inputDate(task.due_date)}" /></label>
+      <div class="actions">
+        <button class="primary" type="submit">${icon(icons.save)} Save</button>
+        <button class="ghost" type="button" data-cancel-task-edit>${icon(icons.close)} Cancel</button>
+      </div>
+    </form>
   `;
 }
 
@@ -385,6 +483,7 @@ function statusButton(task, status, label) {
 }
 
 function renderTeam() {
+  if (state.user.role !== "admin") return renderMemberTeams();
   return `
     <div class="panel">
       <div class="section-head">
@@ -412,14 +511,45 @@ function renderTeam() {
   `;
 }
 
+function renderMemberTeams() {
+  return `
+    <div class="panel">
+      <div class="section-head">
+        <h3>Assigned Teams</h3>
+        <span class="chip">${state.projects.length} projects</span>
+      </div>
+      <div class="item-list">
+        ${state.projects.map((project) => {
+          const tasks = state.tasks.filter((task) => task.project_id === project.id);
+          return `
+            <article class="item">
+              <div class="item-title">
+                <h4>${project.name}</h4>
+                <span class="chip">${tasks.length} tasks</span>
+              </div>
+              <p>${project.description || "No description"}</p>
+              <div class="item-list nested-list">
+                ${tasks.length ? tasks.map((task) => taskItem(task, true)).join("") : `<div class="empty">No tasks assigned in this project.</div>`}
+              </div>
+            </article>
+          `;
+        }).join("") || `<div class="empty">You are not assigned to any projects yet.</div>`}
+      </div>
+    </div>
+  `;
+}
+
 function bindHandlers() {
   const projectForm = document.querySelector("#projectForm");
   if (projectForm) {
     projectForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
-        await api("/api/projects", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(projectForm).entries())) });
+        const data = await api("/api/projects", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(projectForm).entries())) });
+        state.selectedProjectId = data.project.id;
+        state.editingProjectId = null;
         await loadData();
+        await loadProjectMembers(state.selectedProjectId);
         renderApp();
       } catch (error) {
         toast(error.message);
@@ -432,6 +562,57 @@ function bindHandlers() {
       state.selectedProjectId = Number(button.dataset.selectProject);
       await loadProjectMembers(state.selectedProjectId);
       renderApp();
+    });
+  });
+
+  document.querySelectorAll("[data-edit-project]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.editingProjectId = Number(button.dataset.editProject);
+      renderApp();
+    });
+  });
+
+  const projectEditForm = document.querySelector("#projectEditForm");
+  if (projectEditForm) {
+    projectEditForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await api(`/api/projects/${state.editingProjectId}`, {
+          method: "PATCH",
+          body: JSON.stringify(Object.fromEntries(new FormData(projectEditForm).entries()))
+        });
+        state.editingProjectId = null;
+        await loadData();
+        await loadProjectMembers(state.selectedProjectId);
+        renderApp();
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+  }
+
+  const cancelProjectEdit = document.querySelector("[data-cancel-project-edit]");
+  if (cancelProjectEdit) {
+    cancelProjectEdit.addEventListener("click", () => {
+      state.editingProjectId = null;
+      renderApp();
+    });
+  }
+
+  document.querySelectorAll("[data-delete-project]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = Number(button.dataset.deleteProject);
+      if (!confirm("Delete this project and all of its tasks?")) return;
+      try {
+        await api(`/api/projects/${id}`, { method: "DELETE" });
+        delete state.projectMembers[id];
+        state.selectedProjectId = null;
+        state.editingProjectId = null;
+        await loadData();
+        renderApp();
+      } catch (error) {
+        toast(error.message);
+      }
     });
   });
 
@@ -486,17 +667,70 @@ function bindHandlers() {
       state.tasks = data.tasks;
       document.querySelector("#taskList").innerHTML = state.tasks.map((task) => taskItem(task, true)).join("") || `<div class="empty">No tasks match this filter.</div>`;
       bindStatusButtons();
+      bindTaskManageButtons();
       hydrateIcons();
     });
   }
 
   bindStatusButtons();
+  bindTaskManageButtons();
 
   document.querySelectorAll("[data-role]").forEach((button) => {
     button.addEventListener("click", async () => {
       const [id, role] = button.dataset.role.split(":");
       try {
         await api(`/api/users/${id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+        await loadData();
+        renderApp();
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+  });
+}
+
+function bindTaskManageButtons() {
+  document.querySelectorAll("[data-edit-task]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.editingTaskId = Number(button.dataset.editTask);
+      renderApp();
+    });
+  });
+
+  document.querySelectorAll("[data-cancel-task-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.editingTaskId = null;
+      renderApp();
+    });
+  });
+
+  document.querySelectorAll("[data-task-edit-form]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const id = Number(form.dataset.taskEditForm);
+      const payload = Object.fromEntries(new FormData(form).entries());
+      payload.assigneeId = payload.assigneeId ? Number(payload.assigneeId) : null;
+      payload.projectId = Number(payload.projectId);
+      payload.dueDate = payload.dueDate || null;
+      try {
+        await api(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+        state.editingTaskId = null;
+        await loadData();
+        if (state.selectedProjectId) await loadProjectMembers(state.selectedProjectId);
+        renderApp();
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-delete-task]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = Number(button.dataset.deleteTask);
+      if (!confirm("Delete this task?")) return;
+      try {
+        await api(`/api/tasks/${id}`, { method: "DELETE" });
+        if (state.editingTaskId === id) state.editingTaskId = null;
         await loadData();
         renderApp();
       } catch (error) {
@@ -526,7 +760,7 @@ function bindStatusButtons() {
 async function loadProjectMembers(projectId) {
   if (!projectId) return;
   const data = await api(`/api/projects/${projectId}/members`);
-  state.projectMembers[projectId] = data.members.map((member) => member.id);
+  state.projectMembers[projectId] = data.members;
 }
 
 async function renderApp() {

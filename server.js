@@ -294,6 +294,32 @@ app.post("/api/projects", authenticate, requireAdmin, async (req, res, next) => 
   }
 });
 
+app.patch("/api/projects/:id", authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const projectId = Number(req.params.id);
+    const data = parseBody(projectSchema, req.body);
+    const { rows } = await pool.query(
+      "UPDATE projects SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
+      [data.name, data.description, projectId]
+    );
+    if (!rows[0]) return res.status(404).json({ message: "Project not found" });
+    res.json({ project: rows[0] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/projects/:id", authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const projectId = Number(req.params.id);
+    const { rowCount } = await pool.query("DELETE FROM projects WHERE id = $1", [projectId]);
+    if (!rowCount) return res.status(404).json({ message: "Project not found" });
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/projects/:id/members", authenticate, async (req, res, next) => {
   try {
     const projectId = Number(req.params.id);
@@ -365,7 +391,7 @@ app.get("/api/tasks", authenticate, async (req, res, next) => {
   }
 });
 
-app.post("/api/tasks", authenticate, async (req, res, next) => {
+app.post("/api/tasks", authenticate, requireAdmin, async (req, res, next) => {
   try {
     const data = parseBody(taskSchema, req.body);
     if (!(await canAccessProject(req.user, data.projectId))) return res.status(403).json({ message: "Project access denied" });
@@ -382,6 +408,48 @@ app.post("/api/tasks", authenticate, async (req, res, next) => {
       RETURNING *
     `, [data.title, data.description, data.projectId, req.user.id, data.assigneeId || null, data.dueDate || null, data.priority]);
     res.status(201).json({ task: rows[0] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/tasks/:id", authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const taskId = Number(req.params.id);
+    const data = parseBody(taskSchema, req.body);
+    if (!(await canAccessProject(req.user, data.projectId))) return res.status(403).json({ message: "Project access denied" });
+    if (data.assigneeId) {
+      const { rows: memberRows } = await pool.query(
+        "SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2",
+        [data.projectId, data.assigneeId]
+      );
+      if (!memberRows[0]) return res.status(400).json({ message: "Assignee must be a project member" });
+    }
+    const { rows } = await pool.query(`
+      UPDATE tasks
+      SET title = $1,
+        description = $2,
+        project_id = $3,
+        assignee_id = $4,
+        due_date = $5,
+        priority = $6,
+        updated_at = NOW()
+      WHERE id = $7
+      RETURNING *
+    `, [data.title, data.description, data.projectId, data.assigneeId || null, data.dueDate || null, data.priority, taskId]);
+    if (!rows[0]) return res.status(404).json({ message: "Task not found" });
+    res.json({ task: rows[0] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/tasks/:id", authenticate, requireAdmin, async (req, res, next) => {
+  try {
+    const taskId = Number(req.params.id);
+    const { rowCount } = await pool.query("DELETE FROM tasks WHERE id = $1", [taskId]);
+    if (!rowCount) return res.status(404).json({ message: "Task not found" });
+    res.status(204).end();
   } catch (error) {
     next(error);
   }
