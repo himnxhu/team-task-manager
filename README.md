@@ -11,7 +11,7 @@ A full-stack project and task management app with authentication, project teams,
 - Task creation with assignee, priority, due date, and status
 - Dashboard with total, to-do, in-progress, done, and overdue task counts
 - PostgreSQL database with relationships and constraints
-- Railway-ready single-service deployment
+- Render-ready deployment
 
 ## Tech Stack
 
@@ -65,23 +65,6 @@ npm start
 
 The app runs at `http://localhost:3000`.
 
-## Railway Deployment
-
-1. Push this repository to GitHub.
-2. Create a new Railway project from the GitHub repo.
-3. Add a PostgreSQL service in Railway.
-4. In the web service variables, set:
-
-```text
-DATABASE_URL=<Railway PostgreSQL connection string>
-JWT_SECRET=<long random secret>
-DB_SSL=false
-```
-
-5. Deploy. Railway will run `npm start`.
-
-The server creates the required tables automatically during startup.
-
 ## Render Deployment
 
 This repository includes `render.yaml` for Render Blueprint deployment.
@@ -122,7 +105,7 @@ Render will generate `DATABASE_URL` from the PostgreSQL service and generate `JW
 
 ## Submission Checklist
 
-- Live URL: add your deployed Railway URL
+- Live URL: add your deployed Render URL
 - GitHub repo: add your repository URL
 - README: included
 - Demo video: record a 2-5 minute walkthrough using the demo flow above
