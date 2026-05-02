@@ -441,6 +441,14 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(20, 108, 99, 0.08);
 }
 
+.project-card {
+  cursor: pointer;
+}
+
+.project-card:hover {
+  border-color: rgba(20, 108, 99, 0.35);
+}
+
 .project-detail {
   margin-top: 16px;
 }

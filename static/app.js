@@ -212,7 +212,9 @@ async function loadData() {
   state.users = users.users;
   state.projects = projects.projects;
   state.tasks = tasks.tasks;
-  if (!state.selectedProjectId && state.projects[0]) state.selectedProjectId = state.projects[0].id;
+  if (state.selectedProjectId && !projectById(state.selectedProjectId)) {
+    state.selectedProjectId = null;
+  }
 }
 
 function renderShell(content) {
@@ -341,10 +343,10 @@ function projectItem(project) {
   const progress = project.task_count ? Math.round((project.done_count / project.task_count) * 100) : 0;
   const selected = project.id === Number(state.selectedProjectId);
   return `
-    <article class="item ${selected ? "selected-item" : ""}">
+    <article class="item project-card ${selected ? "selected-item" : ""}" role="button" tabindex="0" data-select-project="${project.id}">
       <div class="item-title">
         <h4>${project.name}</h4>
-        <button class="icon-btn" title="Open project" type="button" data-select-project="${project.id}">${icon("arrow-right")}</button>
+        <span class="icon-btn" aria-hidden="true">${icon("arrow-right")}</span>
       </div>
       <p>${project.description || "No description"}</p>
       <div class="meta">
@@ -597,11 +599,10 @@ function bindHandlers() {
     projectForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
-        const data = await api("/api/projects", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(projectForm).entries())) });
-        state.selectedProjectId = data.project.id;
+        await api("/api/projects", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(projectForm).entries())) });
+        state.selectedProjectId = null;
         state.editingProjectId = null;
         await loadData();
-        await loadProjectMembers(state.selectedProjectId);
         renderApp();
       } catch (error) {
         toast(error.message);
@@ -610,10 +611,17 @@ function bindHandlers() {
   }
 
   document.querySelectorAll("[data-select-project]").forEach((button) => {
-    button.addEventListener("click", async () => {
+    const openProject = async () => {
       state.selectedProjectId = Number(button.dataset.selectProject);
       await loadProjectMembers(state.selectedProjectId);
       renderApp();
+    };
+
+    button.addEventListener("click", openProject);
+    button.addEventListener("keydown", async (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      await openProject();
     });
   });
 
