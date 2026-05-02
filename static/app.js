@@ -379,7 +379,7 @@ function renderProjectDetail(project) {
   const projectTasks = state.tasks.filter((task) => task.project_id === project.id);
   const canManage = state.user.role === "admin";
   return `
-    <div class="panel project-detail">
+    <div class="panel project-detail" id="projectDetail">
       <div class="section-head">
         <div>
           <h3>${project.name}</h3>
@@ -634,6 +634,7 @@ function bindHandlers() {
       state.selectedProjectId = Number(button.dataset.selectProject);
       await loadProjectMembers(state.selectedProjectId);
       renderApp();
+      document.querySelector("#projectDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     button.addEventListener("click", openProject);
