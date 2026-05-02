@@ -481,7 +481,7 @@ app.get("/api/dashboard", authenticate, async (req, res, next) => {
   try {
     const visibility = req.user.role === "admin"
       ? ""
-      : "WHERE t.assignee_id = $1 OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1)";
+      : "WHERE (t.assignee_id = $1 OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1))";
     const params = req.user.role === "admin" ? [] : [req.user.id];
     const { rows: statsRows } = await pool.query(`
       SELECT
