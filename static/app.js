@@ -488,6 +488,7 @@ function taskItem(task, editable, highlightAssignee = false) {
   const canManage = state.user.role === "admin";
   const project = projectById(task.project_id);
   const showAssigneeHighlight = highlightAssignee && Number(project?.member_count || 0) > 1;
+  const assigneeLabel = task.assignee_id === state.user.id ? "You" : (task.assignee_name || "Unassigned");
   return `
     <article class="item">
       <div class="item-title">
@@ -502,7 +503,7 @@ function taskItem(task, editable, highlightAssignee = false) {
       </div>
       <div class="meta">
         <span>${task.project_name || "Project"}</span>
-        <span class="${showAssigneeHighlight ? "assignee-highlight" : ""}">${task.assignee_name || "Unassigned"}</span>
+        <span class="${showAssigneeHighlight ? "assignee-highlight" : ""}">${assigneeLabel}</span>
         <span class="${isOverdue(task) ? "chip overdue" : ""}">${fmtDate(task.due_date)}</span>
         <span class="chip ${task.priority}">${task.priority}</span>
       </div>
