@@ -75,6 +75,49 @@ function toast(message) {
   setTimeout(() => el.remove(), 4000);
 }
 
+function confirmDialog({ title, message, confirmText = "Delete" }) {
+  return new Promise((resolve) => {
+    const existing = document.querySelector(".confirm-backdrop");
+    if (existing) existing.remove();
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "confirm-backdrop";
+    backdrop.innerHTML = `
+      <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="confirm-icon">${icon(icons.trash, 20)}</div>
+        <div class="confirm-copy">
+          <h3 id="confirmTitle">${title}</h3>
+          <p>${message}</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="ghost" type="button" data-confirm-cancel>Cancel</button>
+          <button class="danger-btn" type="button" data-confirm-ok>${icon(icons.trash, 16)} ${confirmText}</button>
+        </div>
+      </section>
+    `;
+
+    const close = (answer) => {
+      document.removeEventListener("keydown", onKeydown);
+      backdrop.remove();
+      resolve(answer);
+    };
+
+    const onKeydown = (event) => {
+      if (event.key === "Escape") close(false);
+    };
+
+    backdrop.addEventListener("click", (event) => {
+      if (event.target === backdrop) close(false);
+    });
+    backdrop.querySelector("[data-confirm-cancel]").addEventListener("click", () => close(false));
+    backdrop.querySelector("[data-confirm-ok]").addEventListener("click", () => close(true));
+    document.addEventListener("keydown", onKeydown);
+    document.body.append(backdrop);
+    hydrateIcons();
+    backdrop.querySelector("[data-confirm-cancel]").focus();
+  });
+}
+
 function fmtDate(value) {
   if (!value) return "No due date";
   return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
@@ -611,7 +654,12 @@ function bindHandlers() {
   document.querySelectorAll("[data-delete-project]").forEach((button) => {
     button.addEventListener("click", async () => {
       const id = Number(button.dataset.deleteProject);
-      if (!confirm("Delete this project and all of its tasks?")) return;
+      const shouldDelete = await confirmDialog({
+        title: "Delete project?",
+        message: "This will delete the project and all of its tasks.",
+        confirmText: "Delete project"
+      });
+      if (!shouldDelete) return;
       try {
         await api(`/api/projects/${id}`, { method: "DELETE" });
         delete state.projectMembers[id];
@@ -736,7 +784,12 @@ function bindTaskManageButtons() {
   document.querySelectorAll("[data-delete-task]").forEach((button) => {
     button.addEventListener("click", async () => {
       const id = Number(button.dataset.deleteTask);
-      if (!confirm("Delete this task?")) return;
+      const shouldDelete = await confirmDialog({
+        title: "Delete task?",
+        message: "This task will be removed from the project.",
+        confirmText: "Delete task"
+      });
+      if (!shouldDelete) return;
       try {
         await api(`/api/tasks/${id}`, { method: "DELETE" });
         if (state.editingTaskId === id) state.editingTaskId = null;
