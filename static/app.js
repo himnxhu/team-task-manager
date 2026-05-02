@@ -449,6 +449,10 @@ function renderMembershipEditor() {
 
 function renderTasks() {
   const canCreateTasks = state.user.role === "admin";
+  const selectedProject = projectById(state.selectedProjectId);
+  const visibleTasks = selectedProject
+    ? state.tasks.filter((task) => task.project_id === selectedProject.id)
+    : state.tasks;
   return `
     <div class="two-col">
       <div class="panel ${canCreateTasks ? "" : "hidden"}">
@@ -456,7 +460,7 @@ function renderTasks() {
         <form id="taskForm">
           <label>Title<input name="title" required minlength="2" /></label>
           <label>Description<textarea name="description"></textarea></label>
-          <label>Project<select name="projectId" required>${state.projects.map((project) => `<option value="${project.id}">${project.name}</option>`).join("")}</select></label>
+          <label>Project<select name="projectId" required>${state.projects.map((project) => `<option value="${project.id}" ${selectedProject?.id === project.id ? "selected" : ""}>${project.name}</option>`).join("")}</select></label>
           <div class="form-row">
             <label>Assignee<select name="assigneeId"><option value="">Unassigned</option>${state.users.map((user) => `<option value="${user.id}">${user.name}</option>`).join("")}</select></label>
             <label>Priority<select name="priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></label>
@@ -468,12 +472,12 @@ function renderTasks() {
       <div class="panel">
         <div class="section-head">
           <select id="taskProjectFilter">
-            <option value="">All projects</option>
-            ${state.projects.map((project) => `<option value="${project.id}">${project.name}</option>`).join("")}
+            <option value="" ${selectedProject ? "" : "selected"}>All projects</option>
+            ${state.projects.map((project) => `<option value="${project.id}" ${selectedProject?.id === project.id ? "selected" : ""}>${project.name}</option>`).join("")}
           </select>
         </div>
         <div class="item-list" id="taskList">
-          ${state.tasks.map((task) => taskItem(task, true)).join("") || `<div class="empty">No tasks yet.</div>`}
+          ${visibleTasks.map((task) => taskItem(task, true)).join("") || `<div class="empty">No tasks match this project.</div>`}
         </div>
       </div>
     </div>
@@ -739,13 +743,8 @@ function bindHandlers() {
   const taskProjectFilter = document.querySelector("#taskProjectFilter");
   if (taskProjectFilter) {
     taskProjectFilter.addEventListener("change", async () => {
-      const query = taskProjectFilter.value ? `?projectId=${taskProjectFilter.value}` : "";
-      const data = await api(`/api/tasks${query}`);
-      state.tasks = data.tasks;
-      document.querySelector("#taskList").innerHTML = state.tasks.map((task) => taskItem(task, true)).join("") || `<div class="empty">No tasks match this filter.</div>`;
-      bindStatusButtons();
-      bindTaskManageButtons();
-      hydrateIcons();
+      state.selectedProjectId = taskProjectFilter.value ? Number(taskProjectFilter.value) : null;
+      renderApp();
     });
   }
 
