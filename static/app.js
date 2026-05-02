@@ -314,7 +314,7 @@ function renderDashboard() {
       <div class="panel">
         <h3>Recent Work</h3>
         <div class="item-list">
-          ${recentTasks.map((task) => taskItem(task, state.user.role === "admin")).join("") || `<div class="empty">Create a project and add tasks to begin.</div>`}
+          ${recentTasks.map((task) => taskItem(task, state.user.role === "admin", true)).join("") || `<div class="empty">Create a project and add tasks to begin.</div>`}
         </div>
       </div>
       <div class="panel">
@@ -484,8 +484,10 @@ function renderTasks() {
   `;
 }
 
-function taskItem(task, editable) {
+function taskItem(task, editable, highlightAssignee = false) {
   const canManage = state.user.role === "admin";
+  const project = projectById(task.project_id);
+  const showAssigneeHighlight = highlightAssignee && Number(project?.member_count || 0) > 1;
   return `
     <article class="item">
       <div class="item-title">
@@ -500,7 +502,7 @@ function taskItem(task, editable) {
       </div>
       <div class="meta">
         <span>${task.project_name || "Project"}</span>
-        <span>${task.assignee_name || "Unassigned"}</span>
+        <span class="${showAssigneeHighlight ? "assignee-highlight" : ""}">${task.assignee_name || "Unassigned"}</span>
         <span class="${isOverdue(task) ? "chip overdue" : ""}">${fmtDate(task.due_date)}</span>
         <span class="chip ${task.priority}">${task.priority}</span>
       </div>

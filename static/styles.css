@@ -452,6 +452,15 @@ textarea:focus {
   color: var(--text);
 }
 
+.assignee-highlight {
+  border: 1px solid rgba(20, 108, 99, 0.28);
+  border-radius: 999px;
+  background: #e8f6f3;
+  color: var(--accent);
+  padding: 3px 8px;
+  font-weight: 800;
+}
+
 .chip.todo {
   color: var(--accent-3);
 }

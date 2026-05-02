@@ -483,13 +483,14 @@ app.get("/api/dashboard", authenticate, async (req, res, next) => {
       ? ""
       : "WHERE (t.assignee_id = $1 OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $1))";
     const params = req.user.role === "admin" ? [] : [req.user.id];
+    const ownTaskFilter = req.user.role === "admin" ? "" : "AND t.assignee_id = $1";
     const { rows: statsRows } = await pool.query(`
       SELECT
         COUNT(*)::int AS total,
-        COUNT(CASE WHEN status = 'todo' THEN 1 END)::int AS todo,
-        COUNT(CASE WHEN status = 'in_progress' THEN 1 END)::int AS in_progress,
-        COUNT(CASE WHEN status = 'done' THEN 1 END)::int AS done,
-        COUNT(CASE WHEN due_date < CURRENT_DATE AND status != 'done' THEN 1 END)::int AS overdue
+        COUNT(CASE WHEN t.status = 'todo' ${ownTaskFilter} THEN 1 END)::int AS todo,
+        COUNT(CASE WHEN t.status = 'in_progress' THEN 1 END)::int AS in_progress,
+        COUNT(CASE WHEN t.status = 'done' THEN 1 END)::int AS done,
+        COUNT(CASE WHEN t.due_date < CURRENT_DATE AND t.status != 'done' THEN 1 END)::int AS overdue
       FROM tasks t
       ${visibility}
     `, params);
