@@ -188,12 +188,12 @@ function renderAuth() {
     event.preventDefault();
     const authForm = event.currentTarget;
     const submitButton = authForm.querySelector(".auth-submit");
+    const form = new FormData(authForm);
+    const payload = Object.fromEntries(form.entries());
     authForm.classList.add("is-loading");
     authForm.querySelectorAll("input, button").forEach((control) => {
       control.disabled = true;
     });
-    const form = new FormData(authForm);
-    const payload = Object.fromEntries(form.entries());
     if (state.authMode === "login") delete payload.name;
     try {
       const data = await api(`/api/auth/${state.authMode}`, {
