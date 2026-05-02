@@ -189,6 +189,11 @@ button:disabled {
   opacity: 0.76;
 }
 
+#refreshBtn.is-refreshing i,
+#refreshBtn.is-refreshing svg {
+  animation: spin 0.8s linear infinite;
+}
+
 form {
   display: grid;
   gap: 14px;

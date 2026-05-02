@@ -282,10 +282,19 @@ function renderShell(content) {
     clearSession();
     renderAuth();
   });
-  document.querySelector("#refreshBtn").addEventListener("click", async () => {
-    await loadData();
-    if (state.view === "projects" && state.selectedProjectId) await loadProjectMembers(state.selectedProjectId);
-    renderApp();
+  document.querySelector("#refreshBtn").addEventListener("click", async (event) => {
+    const refreshButton = event.currentTarget;
+    refreshButton.classList.add("is-refreshing");
+    refreshButton.disabled = true;
+    try {
+      await loadData();
+      if (state.view === "projects" && state.selectedProjectId) await loadProjectMembers(state.selectedProjectId);
+      renderApp();
+    } catch (error) {
+      refreshButton.classList.remove("is-refreshing");
+      refreshButton.disabled = false;
+      toast(error.message);
+    }
   });
 }
 
