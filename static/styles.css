@@ -185,11 +185,56 @@ button:hover {
 
 button:disabled {
   transform: none;
+  cursor: wait;
+  opacity: 0.76;
 }
 
 form {
   display: grid;
   gap: 14px;
+}
+
+.auth-submit {
+  position: relative;
+}
+
+.button-spinner,
+.button-loading {
+  display: none;
+}
+
+.button-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+form.is-loading .auth-submit {
+  gap: 8px;
+}
+
+form.is-loading .button-ready {
+  display: none;
+}
+
+form.is-loading .button-spinner,
+form.is-loading .button-loading {
+  display: inline-flex;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 label {

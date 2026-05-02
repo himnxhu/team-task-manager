@@ -166,7 +166,11 @@ function renderAuth() {
             <label class="${state.authMode === "login" ? "hidden" : ""}">Name<input name="name" autocomplete="name" /></label>
             <label>Email<input name="email" type="email" autocomplete="email" required /></label>
             <label>Password<input name="password" type="password" autocomplete="${state.authMode === "login" ? "current-password" : "new-password"}" required minlength="6" /></label>
-            <button class="primary" type="submit">${icon("log-in")} ${state.authMode === "login" ? "Login" : "Signup"}</button>
+            <button class="primary auth-submit" type="submit">
+              <span class="button-spinner" aria-hidden="true"></span>
+              <span class="button-ready">${icon("log-in")} ${state.authMode === "login" ? "Login" : "Signup"}</span>
+              <span class="button-loading">Loading</span>
+            </button>
           </form>
         </div>
       </div>
@@ -182,7 +186,13 @@ function renderAuth() {
 
   document.querySelector("#authForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const authForm = event.currentTarget;
+    const submitButton = authForm.querySelector(".auth-submit");
+    authForm.classList.add("is-loading");
+    authForm.querySelectorAll("input, button").forEach((control) => {
+      control.disabled = true;
+    });
+    const form = new FormData(authForm);
     const payload = Object.fromEntries(form.entries());
     if (state.authMode === "login") delete payload.name;
     try {
@@ -194,6 +204,11 @@ function renderAuth() {
       await loadData();
       renderApp();
     } catch (error) {
+      authForm.classList.remove("is-loading");
+      authForm.querySelectorAll("input, button").forEach((control) => {
+        control.disabled = false;
+      });
+      submitButton?.focus();
       toast(error.message);
     }
   });
