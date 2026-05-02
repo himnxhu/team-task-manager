@@ -313,7 +313,7 @@ function renderDashboard() {
 }
 
 function renderProjects() {
-  const selected = state.user.role === "admin" ? projectById(state.selectedProjectId) : null;
+  const selected = projectById(state.selectedProjectId);
   return `
     <div class="two-col">
       <div class="panel ${state.user.role !== "admin" ? "hidden" : ""}">
@@ -362,6 +362,7 @@ function projectItem(project) {
 function renderProjectDetail(project) {
   const members = state.projectMembers[project.id] || [];
   const projectTasks = state.tasks.filter((task) => task.project_id === project.id);
+  const canManage = state.user.role === "admin";
   return `
     <div class="panel project-detail">
       <div class="section-head">
@@ -369,12 +370,14 @@ function renderProjectDetail(project) {
           <h3>${project.name}</h3>
           <p>${project.description || "No description"}</p>
         </div>
-        <div class="actions">
-          <button class="ghost" type="button" data-edit-project="${project.id}">${icon(icons.edit)} Edit</button>
-          <button class="danger-btn" type="button" data-delete-project="${project.id}">${icon(icons.trash)} Delete</button>
-        </div>
+        ${canManage ? `
+          <div class="actions">
+            <button class="ghost" type="button" data-edit-project="${project.id}">${icon(icons.edit)} Edit</button>
+            <button class="danger-btn" type="button" data-delete-project="${project.id}">${icon(icons.trash)} Delete</button>
+          </div>
+        ` : ""}
       </div>
-      ${state.editingProjectId === project.id ? `
+      ${canManage && state.editingProjectId === project.id ? `
         <form id="projectEditForm" class="edit-form">
           <label>Project name<input name="name" required minlength="2" value="${project.name}" /></label>
           <label>Description<textarea name="description">${project.description || ""}</textarea></label>
