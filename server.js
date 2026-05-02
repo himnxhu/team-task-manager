@@ -70,10 +70,6 @@ const statusSchema = z.object({
   status: z.enum(["todo", "in_progress", "done"])
 });
 
-const roleSchema = z.object({
-  role: z.enum(["admin", "member"])
-});
-
 function signToken(user) {
   return jwt.sign({ id: user.id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
 }
@@ -141,6 +137,27 @@ async function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);
+  `);
+}
+
+async function enforceSingleAdmin() {
+  await pool.query(`
+    WITH first_user AS (
+      SELECT id
+      FROM users
+      ORDER BY created_at ASC, id ASC
+      LIMIT 1
+    )
+    UPDATE users
+    SET role = CASE
+      WHEN id = (SELECT id FROM first_user) THEN 'admin'
+      ELSE 'member'
+    END
+    WHERE EXISTS (SELECT 1 FROM first_user)
+      AND role <> CASE
+        WHEN id = (SELECT id FROM first_user) THEN 'admin'
+        ELSE 'member'
+      END
   `);
 }
 
@@ -228,21 +245,6 @@ app.get("/api/users", authenticate, async (req, res, next) => {
   try {
     const { rows } = await pool.query("SELECT id, name, email, role, created_at FROM users ORDER BY name ASC");
     res.json({ users: rows.map(publicUser) });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.patch("/api/users/:id/role", authenticate, requireAdmin, async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    const { role } = parseBody(roleSchema, req.body);
-    const { rows } = await pool.query(
-      "UPDATE users SET role = $1 WHERE id = $2 RETURNING id, name, email, role, created_at",
-      [role, id]
-    );
-    if (!rows[0]) return res.status(404).json({ message: "User not found" });
-    res.json({ user: publicUser(rows[0]) });
   } catch (error) {
     next(error);
   }
@@ -520,6 +522,7 @@ app.use((error, req, res, next) => {
 });
 
 initDb()
+  .then(enforceSingleAdmin)
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Team Task Manager running on port ${PORT}`);

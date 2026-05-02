@@ -242,7 +242,7 @@ function renderShell(content) {
         <header class="topbar">
           <div class="section-title">
             <h2>${nav.find(([id]) => id === state.view)?.[1] || "Dashboard"}</h2>
-            <p>${state.user.role === "admin" ? "Admin access can manage projects, teams, roles, and all tasks." : "Member access can work inside assigned projects."}</p>
+            <p>${state.user.role === "admin" ? "Admin access can manage projects, teams, and all tasks." : "Member access can work inside assigned projects."}</p>
           </div>
           <button class="ghost" id="refreshBtn" type="button">${icon(icons.refresh)} Refresh</button>
         </header>
@@ -388,7 +388,7 @@ function renderProjectDetail(project) {
         <div>
           <h4>Members Assigned</h4>
           <div class="mini-list">
-            ${members.length ? members.map((member) => `<span>${member.name} <small>${member.role}</small></span>`).join("") : `<span>No members assigned.</span>`}
+            ${members.length ? members.map((member) => `<span>${member.name}</span>`).join("") : `<span>No members assigned.</span>`}
           </div>
         </div>
         <div>
@@ -419,7 +419,7 @@ function renderMembershipEditor() {
           ${state.users.map((user) => `
             <label class="check-row">
               <input type="checkbox" name="memberIds" value="${user.id}" ${selectedMemberIds.has(user.id) ? "checked" : ""} />
-              <span>${user.name} (${user.role})</span>
+              <span>${user.name}</span>
             </label>
           `).join("")}
         </div>
@@ -542,15 +542,9 @@ function renderTeam() {
           <article class="item">
             <div class="item-title">
               <h4>${user.name}</h4>
-              <span class="chip">${user.role}</span>
+              ${user.id === state.user.id ? `<span class="chip">Admin profile</span>` : `<span class="chip">Member</span>`}
             </div>
             <div class="meta"><span>${user.email}</span></div>
-            ${state.user.role === "admin" && user.id !== state.user.id ? `
-              <div class="actions">
-                <button class="ghost" type="button" data-role="${user.id}:member">Member</button>
-                <button class="ghost" type="button" data-role="${user.id}:admin">Admin</button>
-              </div>
-            ` : ""}
           </article>
         `).join("")}
       </div>
@@ -579,7 +573,7 @@ function renderMemberTeams() {
               <div class="assigned-members">
                 <strong>Members</strong>
                 <div class="mini-list">
-                  ${members.length ? members.map((member) => `<span>${member.name} <small>${member.role}</small></span>`).join("") : `<span>No members assigned.</span>`}
+                  ${members.length ? members.map((member) => `<span>${member.name}</span>`).join("") : `<span>No members assigned.</span>`}
                 </div>
               </div>
               <div class="item-list nested-list">
@@ -740,18 +734,6 @@ function bindHandlers() {
   bindStatusButtons();
   bindTaskManageButtons();
 
-  document.querySelectorAll("[data-role]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const [id, role] = button.dataset.role.split(":");
-      try {
-        await api(`/api/users/${id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
-        await loadData();
-        renderApp();
-      } catch (error) {
-        toast(error.message);
-      }
-    });
-  });
 }
 
 function bindTaskManageButtons() {

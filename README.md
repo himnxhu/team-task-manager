@@ -6,7 +6,7 @@ A full-stack project and task management app with authentication, project teams,
 
 - Signup and login with JWT authentication
 - First registered user becomes `admin`; later users become `member`
-- Admins can create projects, manage project members, and change user roles
+- Admins can create projects, manage project members, and manage all tasks
 - Members can view assigned projects and update task progress
 - Task creation with assignee, priority, due date, and status
 - Dashboard with total, to-do, in-progress, done, and overdue task counts
@@ -83,7 +83,6 @@ Render will generate `DATABASE_URL` from the PostgreSQL service and generate `JW
 - `POST /api/auth/login` - login
 - `GET /api/me` - current user
 - `GET /api/users` - list users
-- `PATCH /api/users/:id/role` - admin role update
 - `GET /api/projects` - visible projects
 - `POST /api/projects` - admin project creation
 - `GET /api/projects/:id/members` - project members
