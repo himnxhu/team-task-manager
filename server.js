@@ -20,7 +20,8 @@ if (!DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
+  max: process.env.DB_MAX_CONNECTIONS ? Number(process.env.DB_MAX_CONNECTIONS) : (process.env.VERCEL ? 3 : 10)
 });
 
 app.use(helmet({
@@ -195,6 +196,28 @@ async function canAccessProject(user, projectId) {
   );
   return Boolean(rows[0]);
 }
+
+let dbInitialized = null;
+
+async function ensureDbInitialized() {
+  if (!dbInitialized) {
+    dbInitialized = (async () => {
+      await initDb();
+      await enforceSingleAdmin();
+    })();
+  }
+  return dbInitialized;
+}
+
+app.use(async (req, res, next) => {
+  try {
+    await ensureDbInitialized();
+    next();
+  } catch (error) {
+    console.error("Failed to initialize database", error);
+    res.status(500).json({ message: "Database initialization failed. Please check server logs." });
+  }
+});
 
 app.get("/api/health", async (req, res, next) => {
   try {
@@ -522,14 +545,17 @@ app.use((error, req, res, next) => {
   res.status(error.status || 500).json({ message: error.message || "Server error" });
 });
 
-initDb()
-  .then(enforceSingleAdmin)
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Team Task Manager running on port ${PORT}`);
+if (require.main === module) {
+  ensureDbInitialized()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Team Task Manager running on port ${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to initialize database", error);
+      process.exit(1);
     });
-  })
-  .catch((error) => {
-    console.error("Failed to initialize database", error);
-    process.exit(1);
-  });
+}
+
+module.exports = app;
